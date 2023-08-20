@@ -1,0 +1,1 @@
+python main.py --model_name_or_path meta-llama/Llama-2-7b-chat-hf
