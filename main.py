@@ -6,6 +6,7 @@ import torch,sys,os
 import json
 import pandas 
 import argparse
+import torch.mps
 
 with gr.Blocks() as demo:
     gr.Markdown("""<h1><center>智能助手</center></h1>""")
@@ -32,7 +33,7 @@ with gr.Blocks() as demo:
         if slider_context_times>0:
             prompt += '\n'.join([("<s>Human: "+one_chat[0].replace('<br>','\n')+'\n</s>' if one_chat[0] else '')  +"<s>Assistant: "+one_chat[1].replace('<br>','\n')+'\n</s>'    for one_chat in history_true[-slider_context_times:] ])
         prompt +=  "<s>Human: "+history[-1][0].replace('<br>','\n')+"\n</s><s>Assistant:"
-        input_ids = tokenizer([prompt], return_tensors="pt",add_special_tokens=False).input_ids[:,-512:].to('mps')        
+        input_ids = tokenizer([prompt], return_tensors="pt",add_special_tokens=False).input_ids[:,-512:].to("mps")     
         generate_input = {
             "input_ids":input_ids,
             "max_new_tokens":512,
@@ -84,10 +85,11 @@ if __name__ == "__main__":
     tokenizer.pad_token = tokenizer.eos_token
     if args.is_4bit==False:
         print("not 4 bit\n")
-        model = AutoModelForCausalLM.from_pretrained(args.model_name_or_path,device_map={"":"mps"},torch_dtype=torch.float16).half().to('mps')
+        model = AutoModelForCausalLM.from_pretrained(args.model_name_or_path,device_map="auto",torch_dtype=torch.float16)
         model.eval()
     else:
-        from auto_gptq import AutoGPTQForCausalLM
+        from auto_gptq import AutoGPTQForCausalLMS
+        print("4 bit\n")
         model = AutoGPTQForCausalLM.from_quantized(args.model_name_or_path,low_cpu_mem_usage=True, device="mps:0", use_triton=False,inject_fused_attention=False,inject_fused_mlp=False)
     streamer = TextIteratorStreamer(tokenizer,skip_prompt=True)
     if torch.__version__ >= "2" and sys.platform != "win32":

@@ -5,5 +5,6 @@ if torch.backends.mps.is_available():
     print (x)
     print(torch.backends.mps.is_built())
     print(torch.__version__)
+    print(torch.mps.empty_cache)
 else:
     print ("MPS device not found.")
